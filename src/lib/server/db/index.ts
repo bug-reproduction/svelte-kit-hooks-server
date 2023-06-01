@@ -3,6 +3,9 @@ import { DB_PATH } from '$env/static/private';
 import type { Block, LastSync, Transaction, WriteableBlockchainDB } from './types';
 import type { EIP1193BlockWithTransactions } from 'eip-1193';
 
+// import { createRequire } from 'node:module';
+// const require = createRequire(import.meta.url);
+
 export function setupDB(): WriteableBlockchainDB {
 	function addBlocksTableIfNotExists(db: Database.Database) {
 		db.prepare(
@@ -72,7 +75,29 @@ export function setupDB(): WriteableBlockchainDB {
 		executeTransaction(block);
 	}
 
-	const db = new Database(DB_PATH, { verbose: console.log });
+	const db = new Database(DB_PATH, {
+		verbose: console.log
+		/**
+		 * this is to bypass the issue here : https://github.com/sveltejs/kit/issues/10077
+		 * We use the following above to have an esm require equivalent:
+		 * ```
+		 * import { createRequire } from 'node:module';
+		 * const require = createRequire(import.meta.url);
+		 * ```
+		 * this allow use to resolve the path better-sqlite3 and get the .node file
+		 *
+		 * Unfortunately it cause another error
+		 *
+		 * ```
+		 * file:///home/wighawag/dev/github.com/bug-reproduction/svelte-kit-hooks-server/build/server/chunks/hooks.server-afa63187.js:49
+		 * throw new Error('Could not dynamically require "' + path + '". Please configure the dynamicRequireTargets or/and ignoreDynamicRequires option of @rollup/plugin-commonjs appropriately for this require call to work.');
+		 *    ^
+		 * Error: Could not dynamically require "/home/wighawag/dev/github.com/bug-reproduction/svelte-kit-hooks-server/node_modules/.pnpm/better-sqlite3@8.4.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node". Please configure the dynamicRequireTargets or/and ignoreDynamicRequires option of @rollup/plugin-commonjs appropriately for this require call to work.
+		 * ```
+		 * */
+
+		// nativeBinding: `${require.resolve('better-sqlite3')}/../../build/Release/better_sqlite3.node`
+	});
 	addBlocksTableIfNotExists(db);
 	try {
 		// createBlock(1, '0xff');
